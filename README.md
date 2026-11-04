@@ -13,9 +13,22 @@
 
 | 段階 | 内容 | 状態 |
 |---|---|---|
-| 0 | SageMaker Studio（JupyterLab）で Isaac Sim が動くかの確認 | 確認中（下の「SageMaker Studio で Vulkan を使う」） |
+| 0 | SageMaker Studio（JupyterLab）で Isaac Sim が動くかの確認 | そのままでは動かない（下の「参考」）。①③は EC2 で行う方針に変更 |
+| 1 | EC2 環境の構築（[install_guide/](install_guide/00_overview.md)） | 01〜04（VPC、セキュリティグループ、S3・IAM、EC2 の起動と SSM 接続）は検証済み。05（SageMaker Studio）・06（Isaac の導入）は未実施 |
 
-## SageMaker Studio で Vulkan を使う
+## EC2 環境
+
+構築手順は [install_guide/00_overview.md](install_guide/00_overview.md)。セキュリティの構成は
+[weaviate_on_aws](https://github.com/makonaga/weaviate_on_aws) と同じ考え方（プライベートサブネット、パブリック IP なし、
+インバウンドは必要なセキュリティグループからだけ、SSM Session Manager で接続）。
+
+| 項目 | 内容 |
+|---|---|
+| リージョン | us-west-2（SageMaker Studio も同じ VPC 内に作る） |
+| EC2 | g6e.2xlarge（NVIDIA L40S 48GB）、Deep Learning Base OSS Nvidia Driver GPU AMI (Ubuntu 22.04) |
+| データの受け渡し | S3 バケット（EC2 と SageMaker Studio の間） |
+
+## 参考: SageMaker Studio で Vulkan を使えなかった記録
 
 Isaac Sim はカメラ画像の描画に Vulkan を使う。SageMaker Studio の JupyterLab では、どの GPU インスタンスでも
 コンテナに NVIDIA の描画用ライブラリが渡されておらず、そのままでは Vulkan を使えなかった。
@@ -30,7 +43,7 @@ Isaac Sim はカメラ画像の描画に Vulkan を使う。SageMaker Studio の
 （ドライバはどれも 595.91.07）
 
 `scripts/setup_vulkan_sagemaker.sh` は、ドライバと同じ版の NVIDIA ドライバ配布ファイルから描画用のライブラリだけを
-取り出してホーム配下（`~/.nvidia-gl/`）に置き、Vulkan で GPU が見えるかを調べる。
+取り出してホーム配下（`~/.nvidia-gl/`）に置き、Vulkan で GPU が見えるかを調べる（作成したが、EC2 に方針を変えたため未実行）。
 AWS・NVIDIA の公式な方法ではなく、描画用のデバイス（`/dev/dri`）はコンテナの中から作れないため、動くかは試すまで分からない。
 
 GPU インスタンスの JupyterLab スペースのターミナルで実行する。
