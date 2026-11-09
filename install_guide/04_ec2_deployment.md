@@ -27,7 +27,8 @@ source ~/isaac-oregon-vpc-info.txt && export AWS_DEFAULT_REGION=us-west-2 AWS_RE
 | ディスク | gp3 200GB |
 | キーペア | isaac-key（SageMaker Studio から SSH するため） |
 
-起動している間は時間単位で課金されます。使わないときは停止します（[00_overview.md](./00_overview.md) の「停止と再開」）。
+起動している間は時間単位で課金されます。使い終わったら AMI に保存して削除します（[07_ami_operation.md](./07_ami_operation.md)）。
+停止した EC2 は同じ AZ でしか起動できず、g6e.2xlarge の空きがないと起動できないため、停止・再開の運用はしません。
 
 ---
 
@@ -211,5 +212,5 @@ HTTP/2 200
 
 ## 次のステップ
 
-- 05: 同じ VPC 内に SageMaker Studio ドメインを作り、Studio から EC2 に SSH できることを確認する（未実施）
-- 06: EC2 に Isaac Sim 5.1・Isaac Lab 2.3・LeIsaac を入れて動作を確認する（未実施）
+[05_sagemaker_studio_setup.md](./05_sagemaker_studio_setup.md) に進み、同じ VPC 内に SageMaker Studio ドメインを作って、
+Studio から EC2 に SSH できることを確認します。

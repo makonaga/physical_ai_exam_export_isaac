@@ -31,7 +31,7 @@ EC2 環境を、AWS 上に構築する手順を説明します。②学習は今
 |    3 (us-west-2b) 172.29.160.0/20    4 (us-west-2d) 172.29.176.0/20         |
 |                                                                             |
 |  +---------------------------+  SSH(22)  +-----------------------------+    |
-|  | Isaac EC2 (g6e.2xlarge)   |<----------| SageMaker Studio（予定）    |    |
+|  | Isaac EC2 (g6e.2xlarge)   |<----------| SageMaker Studio            |    |
 |  | NVIDIA L40S 48GB          |           | VpcOnly                     |    |
 |  +-------------+-------------+           +--------------+--------------+    |
 |                |                                        |                   |
@@ -54,8 +54,9 @@ EC2 環境を、AWS 上に構築する手順を説明します。②学習は今
 | 02 | [セキュリティグループ](./02_security_groups.md) | Isaac EC2 用・SageMaker Studio 用のセキュリティグループ | 検証済み |
 | 03 | [S3 バケットと IAM](./03_iam_policies.md) | データ受け渡し用の S3 バケット、EC2 用・Studio 用の IAM ロール | 検証済み |
 | 04 | [EC2 デプロイ](./04_ec2_deployment.md) | キーペア、EC2 の起動、SSM での接続確認 | 検証済み |
-| 05 | SageMaker Studio セットアップ | 同じ VPC 内の Studio ドメイン、Studio から EC2 への SSH | 未実施 |
-| 06 | Isaac の導入 | EC2 への Isaac Sim 5.1・Isaac Lab 2.3・LeIsaac の導入と動作確認 | 未実施 |
+| 05 | [SageMaker Studio セットアップ](./05_sagemaker_studio_setup.md) | 同じ VPC 内の Studio ドメイン、Studio から EC2 への SSH | 検証済み |
+| 06 | [Isaac の導入](./06_isaac_install.md) | EC2 への Isaac Sim 5.1・Isaac Lab 2.3・LeIsaac の導入と動作確認 | Isaac Lab のインストールまで検証済み。起動確認と LeIsaac 本体は未実施 |
+| 07 | [AMI での保存と起動](./07_ami_operation.md) | 作業の終わりに AMI を作って EC2 を削除し、次回は AMI から空きのある AZ に起動する | 保存と削除は検証済み。AMI からの起動は未検証 |
 
 ## 環境情報
 
@@ -76,6 +77,8 @@ EC2 環境を、AWS 上に構築する手順を説明します。②学習は今
 | IAM ロール | isaac-ec2-role（インスタンスプロファイル isaac-ec2-profile） | EC2 用 |
 | IAM ロール | isaac-sagemaker-execution-role | SageMaker Studio 用 |
 | キーペア | isaac-key | Studio から EC2 への SSH 用 |
+| SageMaker Studio ドメイン | isaac-sagemaker-domain（ユーザー isaac-user） | VpcOnly。プライベートサブネット 4 つ |
+| AMI | isaac-server-{作成日時} | Isaac の環境を保存したもの（作業の終わりに作り直す） |
 
 作成したリソースの ID は、各手順の最後で `~/isaac-oregon-vpc-info.txt` に追記していきます。
 ターミナルを開き直したときは、次で読み込めます。
@@ -91,25 +94,12 @@ source ~/isaac-oregon-vpc-info.txt && export AWS_DEFAULT_REGION=us-west-2 AWS_RE
 
 コマンドは、とくに断りがなければ**ローカル PC のターミナル**（macOS の zsh で検証）で実行します。
 
-## 停止と再開（コスト削減）
+## 日々の運用（コスト削減）
 
-使わないときは EC2 を停止します。
+EC2 は停止ではなく、**作業の終わりに AMI に保存して削除し、次回は AMI から起動**します。
+停止した EC2 は同じ AZ でしか起動できず、g6e.2xlarge の空きがないと起動できないためです
+（検証時、停止した EC2 が `InsufficientInstanceCapacity` で起動できませんでした）。
+手順は [07_ami_operation.md](./07_ami_operation.md) を参照してください。
 
-```bash
-ISAAC_INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=isaac-server" "Name=instance-state-name,Values=running,stopped" --query 'Reservations[0].Instances[0].InstanceId' --output text) && echo "Instance: $ISAAC_INSTANCE_ID"
-```
-
-```bash
-aws ec2 stop-instances --instance-ids $ISAAC_INSTANCE_ID && aws ec2 wait instance-stopped --instance-ids $ISAAC_INSTANCE_ID && echo "停止しました"
-```
-
-再開するとき:
-
-```bash
-aws ec2 start-instances --instance-ids $ISAAC_INSTANCE_ID && aws ec2 wait instance-running --instance-ids $ISAAC_INSTANCE_ID && echo "起動しました"
-```
-
-- 停止した EC2 は、同じ AZ で起動し直されます。g6e は空きが少ないことがあり、`InsufficientInstanceCapacity` で
-  起動できない場合は、時間をおいてやり直してください。
-- EC2 を停止しても、EBS（200GB）、NAT Gateway、インターフェース型の VPC エンドポイント、NAT Gateway のパブリック IP は
-  課金が続きます。
+EC2 を削除しても、NAT Gateway とそのパブリック IP、インターフェース型の VPC エンドポイント、AMI（スナップショット）、S3、
+SageMaker Studio のホームフォルダ（EFS）は課金が続きます。SageMaker Studio の JupyterLab は、使わないときに停止します。

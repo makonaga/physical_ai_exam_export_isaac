@@ -14,7 +14,7 @@
 | 段階 | 内容 | 状態 |
 |---|---|---|
 | 0 | SageMaker Studio（JupyterLab）で Isaac Sim が動くかの確認 | そのままでは動かない（下の「参考」）。①③は EC2 で行う方針に変更 |
-| 1 | EC2 環境の構築（[install_guide/](install_guide/00_overview.md)） | 01〜04（VPC、セキュリティグループ、S3・IAM、EC2 の起動と SSM 接続）は検証済み。05（SageMaker Studio）・06（Isaac の導入）は未実施 |
+| 1 | EC2 環境の構築（[install_guide/](install_guide/00_overview.md)） | 01〜05（VPC、セキュリティグループ、S3・IAM、EC2、SageMaker Studio と SSH）は検証済み。06（Isaac の導入）は Isaac Lab のインストールまで。07（AMI での保存と起動）は保存と削除まで |
 
 ## EC2 環境
 
@@ -27,6 +27,7 @@
 | リージョン | us-west-2（SageMaker Studio も同じ VPC 内に作る） |
 | EC2 | g6e.2xlarge（NVIDIA L40S 48GB）、Deep Learning Base OSS Nvidia Driver GPU AMI (Ubuntu 22.04) |
 | データの受け渡し | S3 バケット（EC2 と SageMaker Studio の間） |
+| 運用 | 作業の終わりに AMI に保存して EC2 を削除し、次回は AMI から空きのある AZ に起動する（g6e の空き不足のため停止・再開はしない） |
 
 ## 参考: SageMaker Studio で Vulkan を使えなかった記録
 
